@@ -1,0 +1,19 @@
+[Unit]
+Description=Zookeeper Daemon
+Documentation=http://zookeeper.apache.org
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ kafka_home_dir }}
+User={{ kafka_user_name }}
+Group={{ kafka_group_name }}
+ExecStart={{ kafka_home_dir }}/bin/zookeeper-server-start.sh {{ kafka_conf_dir }}/zookeeper.properties
+ExecStop={{ kafka_home_dir }}/bin/zookeeper-server-stop.sh
+TimeoutSec=30
+Restart=on-failure
+SuccessExitStatus=143
+
+[Install]
+WantedBy=default.target

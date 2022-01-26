@@ -1,0 +1,6 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: dborisov.kafka
+      kafka_version: "{{ lookup('env', 'KAFKA_VERSION') }}"

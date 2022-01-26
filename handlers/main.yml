@@ -1,0 +1,14 @@
+---
+- name: Restart kafka service
+  systemd:
+    name: "{{ kafka_service_name }}"
+    state: restarted
+    daemon_reload: yes
+  when: kafka_service_state == 'started'
+
+- name: Restart zookeeper service
+  systemd:
+    name: "{{ kafka_zookeeper_service_name }}"
+    state: restarted
+    daemon_reload: yes
+  when: kafka_zookeeper_service_state == 'started'
