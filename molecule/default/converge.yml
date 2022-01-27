@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: dborisov.kafka
+      kafka_version: "{{ lookup('env', 'KAFKA_VERSION') }}"
+      kafka_zookeeper_service_enabled: yes
+      kafka_zookeeper_service_state: started

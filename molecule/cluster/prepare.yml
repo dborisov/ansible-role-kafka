@@ -1,0 +1,6 @@
+---
+- name: Prepare
+  hosts: all
+  roles:
+    - role: dborisov.java
+    - role: dborisov.zookeeper

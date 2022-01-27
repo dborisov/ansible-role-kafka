@@ -1,0 +1,119 @@
+---
+- name: Ensure {{ kafka_group_name }} group exists
+  group:
+    name: "{{ kafka_group_name }}"
+    system: yes
+  when: kafka_create_group
+
+- name: Ensure {{ kafka_user_name }} user exists
+  user:
+    name: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    createhome: no
+    system: yes
+  when: kafka_create_user
+
+- name: Ensure {{ kafka_base_dir }} directory exists
+  file:
+    path: "{{ kafka_base_dir }}"
+    state: directory
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    mode: "0755"
+
+- name: Download Kafka {{ kafka_version }} distro
+  get_url:
+    url: "{{ kafka_distro_url }}"
+    dest: "{{ kafka_base_dir }}/{{ kafka_distro_file }}"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+
+- name: Unarchive Kafka {{ kafka_version }} distro
+  unarchive:
+    src: "{{ kafka_base_dir }}/{{ kafka_distro_file }}"
+    dest: "{{ kafka_base_dir }}"
+    remote_src: yes
+    creates: "{{ kafka_base_dir }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+
+- name: Ensure required directories exist
+  file:
+    dest: "{{ item }}"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    state: directory
+    recurse: yes
+  with_items:
+    - "{{ kafka_log_dir }}"
+    - "{{ kafka_data_dir }}"
+
+- name: Ensure required symlinks exist
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+  with_items:
+    - src: "{{ kafka_base_dir }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}"
+      dest: "{{ kafka_home_dir }}"
+    - src: "{{ kafka_home_dir }}/config"
+      dest: "{{ kafka_conf_dir }}"
+
+- name: Ensure Zookeeper config file is present
+  template:
+    src: "zookeeper.properties.j2"
+    dest: "{{ kafka_conf_dir }}/zookeeper.properties"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    mode: '0644'
+  notify: Restart zookeeper service
+
+- name: Ensure Kafka config file is present
+  template:
+    src: "server.properties.j2"
+    dest: "{{ kafka_conf_dir }}/server.properties"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    mode: '0644'
+  notify: Restart kafka service
+
+- name: Ensure PATH variable contains {{ kafka_home_dir }}/bin directory
+  copy:
+    dest: "/etc/profile.d/kafka.sh"
+    content: "export PATH=$PATH:{{ kafka_home_dir }}/bin"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    mode: '0644'
+
+- name: Ensure Kafka systemd units are present
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: "{{ kafka_user_name }}"
+    group: "{{ kafka_group_name }}"
+    mode: '0644'
+  with_items:
+    - "{{ kafka_service_name }}"
+    - "{{ kafka_zookeeper_service_name }}"
+
+- name: Ensure Kafka services are enabled/disabled on boot
+  systemd:
+    name: "{{ item.name }}"
+    enabled: "{{ item.enabled | ternary('yes', 'no') }}"
+  with_items:
+    - name: "{{ kafka_service_name }}"
+      enabled: "{{ kafka_service_enabled }}" 
+    - name: "{{ kafka_zookeeper_service_name }}"
+      enabled: "{{ kafka_zookeeper_service_enabled }}" 
+
+- name: Ensure Kafka services are started/stopped
+  systemd:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  with_items:
+    - name: "{{ kafka_service_name }}"
+      state: "{{ kafka_service_state }}" 
+    - name: "{{ kafka_zookeeper_service_name }}"
+      state: "{{ kafka_zookeeper_service_state }}"

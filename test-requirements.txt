@@ -1,0 +1,5 @@
+molecule[docker,lint]
+ansible-lint
+ansible-compat < 1.0.0
+identify < 2.4.3
+rich < 11.0.0

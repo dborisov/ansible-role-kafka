@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Gather the services facts
+      service_facts:
+
+    - name: Assert that Kafka service is present, running and enabled on boot
+      assert:
+        that:
+          - "'kafka.service' in ansible_facts.services"
+          - ansible_facts.services['kafka.service'].state == 'running'
+          - ansible_facts.services['kafka.service'].status == 'enabled'
+        quiet: yes
